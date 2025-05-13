@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manajemen Karyawan & Produksi | Admin PT. Lestari Batako</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+      min-height: 100vh;
+    }
+    .card-modern {
+      border-radius: 1.5rem;
+      border: none;
+      box-shadow: 0 8px 32px rgba(37,99,235,0.10);
+      background: #fff;
+    }
+    .form-label {
+      color: #2563eb;
+      font-weight: 600;
+    }
+    .btn-warning {
+      font-weight: 600;
+      border-radius: 0.75rem;
+      letter-spacing: 1px;
+    }
+    .btn-add {
+      background: #2563eb;
+      color: #fff;
+      border-radius: 0.5rem;
+      border: none;
+      padding: 0.25rem 0.75rem;
+      margin-left: 0.5rem;
+      font-size: 1rem;
+    }
+    .btn-add:hover {
+      background: #1d4ed8;
+      color: #fff;
+    }
+    .remove-name {
+      color: #dc3545;
+      cursor: pointer;
+      margin-left: 0.5rem;
+      font-size: 1.2rem;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <main class="container py-5">
+    <section>
+      <h2 class="mb-4 text-primary"><i class="fas fa-users-cog me-2"></i>Manajemen Karyawan & Produksi</h2>
+      <div class="card card-modern p-4 p-md-5">
+        <form>
+          <div class="mb-4">
+            <label for="productionType" class="form-label">Pilih Jenis Produksi</label>
+            <select class="form-select" id="productionType" required>
+              <option value="" disabled selected>Pilih jenis produksi...</option>
+              <option value="batako">Produksi Batako</option>
+              <option value="paving">Produksi Paving</option>
+              <option value="angin-angin">Produksi Angin-Angin</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Nama Karyawan (Team/Individu)</label>
+            <div id="employeeNames">
+              <div class="input-group mb-2">
+                <input type="text" class="form-control employee-name" placeholder="Masukkan nama karyawan" required>
+                <button type="button" class="btn btn-add" onclick="addEmployeeName()" title="Tambah Nama"><i class="fas fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="attendanceDate" class="form-label">Tanggal Kehadiran</label>
+            <input type="date" class="form-control" id="attendanceDate" required>
+          </div>
+          <div class="mb-3" id="batakoSemenGroup" style="display:none;">
+            <label for="semenUsed" class="form-label">Jumlah Sak Semen Habis (khusus Batako)</label>
+            <input type="number" class="form-control" id="semenUsed" placeholder="Masukkan jumlah sak semen yang dihabiskan" min="1">
+            <div class="form-text">Setiap 1 sak semen = Rp40.000 untuk satu team.</div>
+          </div>
+          <div class="mb-3" id="pavingModelGroup" style="display:none;">
+            <label for="pavingModel" class="form-label">Model Paving</label>
+            <select class="form-select" id="pavingModel">
+              <option value="" disabled selected>Pilih model paving...</option>
+              <option value="jalan">Paving Jalan (Kecil) - Rp300/unit</option>
+              <option value="3d">Paving 3D - Rp400/unit</option>
+            </select>
+          </div>
+          <div class="mb-3" id="productionQtyGroup">
+            <label for="productionQty" class="form-label">Hasil Produksi (unit)</label>
+            <input type="number" class="form-control" id="productionQty" placeholder="Masukkan jumlah unit diproduksi" min="0" required>
+          </div>
+          <div class="mb-3">
+            <label for="updateStock" class="form-label">Perbarui Stok Produk</label>
+            <select class="form-select" id="updateStock" required>
+              <option value="" disabled selected>Pilih produk untuk update stok...</option>
+              <option value="batako">Batako Press</option>
+              <option value="paving">Paving Block</option>
+              <option value="angin-angin">Angin-Angin Beton</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="salaryAmount" class="form-label">Gaji (otomatis dihitung)</label>
+            <input type="text" class="form-control" id="salaryAmount" placeholder="Contoh: Rp500.000" disabled>
+          </div>
+          <button type="submit" class="btn btn-warning w-100">Simpan Data Karyawan</button>
+        </form>
+      </div>
+    </section>
+  </main>
+  <script>
+    // Gaji per unit untuk produksi paving (berdasarkan model)
+    const gajiPaving = {
+      "jalan": 300,
+      "3d": 400
+    };
+    // Gaji per unit untuk angin-angin
+    const gajiPerUnit = {
+      "angin-angin": 1500
+    };
+
+    // Event: Tampilkan form sesuai jenis produksi
+    document.getElementById('productionType').addEventListener('change', function() {
+      const tipe = this.value;
+      // Batako
+      if (tipe === "batako") {
+        document.getElementById('batakoSemenGroup').style.display = '';
+        document.getElementById('semenUsed').required = true;
+        document.getElementById('productionQtyGroup').style.display = 'none';
+        document.getElementById('productionQty').required = false;
+        document.getElementById('pavingModelGroup').style.display = 'none';
+        // Nama karyawan bisa lebih dari satu
+        document.querySelectorAll('.employee-name').forEach(e => e.required = true);
+      }
+      // Paving
+      else if (tipe === "paving") {
+        document.getElementById('batakoSemenGroup').style.display = 'none';
+        document.getElementById('semenUsed').required = false;
+        document.getElementById('productionQtyGroup').style.display = '';
+        document.getElementById('productionQty').required = true;
+        document.getElementById('pavingModelGroup').style.display = '';
+        // Nama karyawan hanya satu (individual)
+        document.querySelectorAll('.employee-name').forEach((e, i) => {
+          e.required = i === 0;
+          if (i > 0) e.parentElement.style.display = 'none';
+          else e.parentElement.style.display = '';
+        });
+      }
+      // Angin-angin
+      else if (tipe === "angin-angin") {
+        document.getElementById('batakoSemenGroup').style.display = 'none';
+        document.getElementById('semenUsed').required = false;
+        document.getElementById('productionQtyGroup').style.display = '';
+        document.getElementById('productionQty').required = true;
+        document.getElementById('pavingModelGroup').style.display = 'none';
+        // Nama karyawan hanya satu (individual)
+        document.querySelectorAll('.employee-name').forEach((e, i) => {
+          e.required = i === 0;
+          if (i > 0) e.parentElement.style.display = 'none';
+          else e.parentElement.style.display = '';
+        });
+      }
+      hitungGaji();
+    });
+
+    // Event: Hitung gaji otomatis
+    document.getElementById('semenUsed').addEventListener('input', hitungGaji);
+    document.getElementById('productionQty').addEventListener('input', hitungGaji);
+    document.getElementById('productionType').addEventListener('change', hitungGaji);
+    document.getElementById('pavingModel').addEventListener('change', hitungGaji);
+
+    function hitungGaji() {
+      const tipe = document.getElementById('productionType').value;
+      let gaji = 0;
+      // Batako
+      if (tipe === "batako") {
+        const sak = parseInt(document.getElementById('semenUsed').value) || 0;
+        if (sak > 0) {
+          gaji = sak * 40000;
+        }
+        // Team, bagi gaji ke jumlah anggota
+        const names = document.querySelectorAll('.employee-name');
+        const anggota = Array.from(names).filter(input => input.value.trim() !== "" && input.parentElement.style.display !== 'none').length || 1;
+        let gajiPerOrang = gaji;
+        if (anggota > 0) {
+          gajiPerOrang = gaji / anggota;
+        }
+        document.getElementById('salaryAmount').value = gaji ? 'Rp' + gajiPerOrang.toLocaleString() + (anggota > 1 ? ' / orang' : '') : '';
+      }
+      // Paving
+      else if (tipe === "paving") {
+        const model = document.getElementById('pavingModel').value;
+        const qty = parseInt(document.getElementById('productionQty').value) || 0;
+        const harga = gajiPaving[model] || 0;
+        gaji = harga * qty;
+        document.getElementById('salaryAmount').value = gaji ? 'Rp' + gaji.toLocaleString() : '';
+      }
+      // Angin-angin
+      else if (tipe === "angin-angin") {
+        const qty = parseInt(document.getElementById('productionQty').value) || 0;
+        gaji = gajiPerUnit["angin-angin"] * qty;
+        document.getElementById('salaryAmount').value = gaji ? 'Rp' + gaji.toLocaleString() : '';
+      }
+    }
+
+    // Tambah input nama karyawan (hanya aktif untuk batako)
+    function addEmployeeName() {
+      const tipe = document.getElementById('productionType').value;
+      if (tipe !== "batako") return; // hanya batako yang bisa tambah team
+      const container = document.getElementById('employeeNames');
+      const div = document.createElement('div');
+      div.className = "input-group mb-2";
+      div.innerHTML = `
+        <input type="text" class="form-control employee-name" placeholder="Masukkan nama karyawan" required>
+        <span class="remove-name" title="Hapus" onclick="removeEmployeeName(this)"><i class="fas fa-times-circle"></i></span>
+      `;
+      container.appendChild(div);
+      // Update gaji jika jumlah anggota berubah
+      div.querySelector('.employee-name').addEventListener('input', hitungGaji);
+    }
+
+    // Hapus input nama karyawan
+    function removeEmployeeName(el) {
+      el.parentElement.remove();
+      hitungGaji();
+    }
+
+    // Update gaji jika nama karyawan diubah
+    document.querySelectorAll('.employee-name').forEach(input => {
+      input.addEventListener('input', hitungGaji);
+    });
+
+    // Simulasi update stok (localStorage)
+    document.querySelector('form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      // Ambil data
+      const produk = document.getElementById('updateStock').value;
+      const hasilProduksi = parseInt(document.getElementById('productionQty').value) || 0;
+      // Update stok hanya jika produk dipilih
+      if (produk) {
+        // Ambil stok lama
+        const stokLama = parseInt(localStorage.getItem('stok_' + produk) || "0");
+        const stokBaru = stokLama + hasilProduksi;
+        localStorage.setItem('stok_' + produk, stokBaru);
+        alert('Data karyawan & hasil produksi berhasil disimpan!\nStok produk "' + produk + '" diperbarui menjadi: ' + stokBaru);
+        this.reset();
+        document.getElementById('salaryAmount').value = '';
+        document.getElementById('pavingModelGroup').style.display = 'none';
+        document.getElementById('batakoSemenGroup').style.display = 'none';
+        document.getElementById('productionQtyGroup').style.display = '';
+      }
+    });
+
+    // Jika ingin menampilkan stok lama saat memilih produk
+    document.getElementById('updateStock').addEventListener('change', function() {
+      const produk = this.value;
+      const stokLama = localStorage.getItem('stok_' + produk) || 0;
+      // Tidak perlu update newStock, stok akan otomatis ditambah hasil produksi
+    });
+  </script>
+</body>
+</html>
